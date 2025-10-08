@@ -8,6 +8,7 @@ import pe.edu.upc.managewise.backend.backlog.domain.model.commands.UpdateSprintC
 import pe.edu.upc.managewise.backend.backlog.domain.services.SprintCommandService;
 import pe.edu.upc.managewise.backend.backlog.infrastructure.persistence.jpa.repositories.SprintRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -19,15 +20,22 @@ public class SprintCommandServiceImpl implements SprintCommandService {
     }
 
     @Override
-    public Long handle(CreateSprintCommand command){
-        var title = command.title();
-        if (this.sprintRepository.existsByTitle(title)){
-            throw new IllegalArgumentException("Sprint with " + title + " as title already exists");
+    public Long handle(CreateSprintCommand command) {
+
+        if (this.sprintRepository.existsByTitle(command.title())) {
+            throw new IllegalArgumentException("Ya existe un Sprint con el título '" + command.title() + "'");
+        }
+        List<Long> projectUserIds = command.project().getUserIds();
+        List<Long> userIdsToAdd = command.userIds();
+        for (Long userId : userIdsToAdd) {
+            if (!projectUserIds.contains(userId)) {
+                throw new IllegalArgumentException("El usuario con ID " + userId + " no está registrado en este proyecto.");
+            }
         }
         var sprint = new Sprint(command);
-        try{
+        try {
             this.sprintRepository.save(sprint);
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new IllegalArgumentException("Error while saving sprint: " + e.getMessage());
         }
         return sprint.getId();
@@ -47,7 +55,7 @@ public class SprintCommandServiceImpl implements SprintCommandService {
         }
 
         var sprintToUpdate = this.sprintRepository.findById(sprintId).get();
-        sprintToUpdate.updateInformation(command.title(), command.goal(), command.status());
+        sprintToUpdate.updateInformation(command.title(), command.description(), command.status());
 
         try{
             var updatedSprint = this.sprintRepository.save(sprintToUpdate);

@@ -5,8 +5,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import pe.edu.upc.managewise.backend.iam.domain.services.UserQueryService;
+import pe.edu.upc.managewise.backend.project.domain.model.commands.AddUserToProjectCommand;
 import pe.edu.upc.managewise.backend.project.domain.model.commands.CreateProjectCommand;
 import pe.edu.upc.managewise.backend.project.domain.model.commands.DeleteProjectCommand;
+import pe.edu.upc.managewise.backend.project.domain.model.commands.RemoveUserFromProjectCommand;
 import pe.edu.upc.managewise.backend.project.domain.model.queries.GetAllProjectsQuery;
 import pe.edu.upc.managewise.backend.project.domain.model.queries.GetProjectByIdQuery;
 import pe.edu.upc.managewise.backend.project.domain.model.queries.GetProjectsByUserIdQuery;
@@ -14,6 +17,7 @@ import pe.edu.upc.managewise.backend.project.domain.services.ProjectCommandServi
 import pe.edu.upc.managewise.backend.project.domain.services.ProjectQueryService;
 import pe.edu.upc.managewise.backend.project.interfaces.rest.resources.CreateProjectResource;
 import pe.edu.upc.managewise.backend.project.interfaces.rest.resources.ProjectResource;
+import pe.edu.upc.managewise.backend.project.interfaces.rest.resources.UpdateProjectResource;
 import pe.edu.upc.managewise.backend.project.interfaces.rest.transform.CreateProjectCommandFromResourceAssembler;
 import pe.edu.upc.managewise.backend.project.interfaces.rest.transform.ProjectResourceFromEntityAssembler;
 import pe.edu.upc.managewise.backend.project.interfaces.rest.transform.UpdateProjectCommandFromResourceAssembler;
@@ -29,34 +33,36 @@ public class ProjectsController {
 
     private final ProjectQueryService projectQueryService;
     private final ProjectCommandService projectCommandService;
+    private final UserQueryService userQueryService;
 
-    public ProjectsController(ProjectQueryService projectQueryService, ProjectCommandService projectCommandService) {
+    public ProjectsController(ProjectQueryService projectQueryService, ProjectCommandService projectCommandService,UserQueryService userQueryService) {
         this.projectQueryService = projectQueryService;
         this.projectCommandService = projectCommandService;
+        this.userQueryService = userQueryService;
     }
 
-    // Endpoint to create a new project
+
     @PostMapping("/user/{userId}")
     public ResponseEntity<ProjectResource> createProject(@PathVariable Long userId, @RequestBody CreateProjectResource resource) {
-        // Ahora userId se recibe como parte de la URL
-        // Asignamos el userId del PathVariable al comando de creación
+
+
         var createProjectCommand = CreateProjectCommandFromResourceAssembler.toCommandFromResource(resource);
 
-        // Aseguramos que el userId esté presente en el comando
+
         createProjectCommand = new CreateProjectCommand(
-                userId,  // Asignamos el userId recibido en la URL
+                userId,
                 createProjectCommand.name(),
                 createProjectCommand.description(),
                 createProjectCommand.endDate(),
-                createProjectCommand.status()
+                createProjectCommand.budget()
         );
+
 
         var projectId = this.projectCommandService.handle(createProjectCommand);
 
         if (projectId.equals(0L)) {
             return ResponseEntity.badRequest().build();
         }
-
         var getProjectByIdQuery = new GetProjectByIdQuery(projectId);
         var optionalProject = this.projectQueryService.handle(getProjectByIdQuery);
 
@@ -69,7 +75,35 @@ public class ProjectsController {
     }
 
 
-    // Endpoint to get all projects
+
+
+
+    @PostMapping("/{projectId}/users")
+    public ResponseEntity<?> addUserToProject(@PathVariable Long projectId, @RequestBody Long userId) {
+        try {
+
+            AddUserToProjectCommand command = new AddUserToProjectCommand(projectId, userId);
+            projectCommandService.handleAddUserToProject(command);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error adding user to project: " + e.getMessage());
+        }
+    }
+
+
+    @DeleteMapping("/{projectId}/users/{userId}")
+    public ResponseEntity<?> removeUserFromProject(@PathVariable Long projectId, @PathVariable Long userId) {
+        try {
+
+            RemoveUserFromProjectCommand command = new RemoveUserFromProjectCommand(projectId, userId);
+            projectCommandService.handleRemoveUserFromProject(command);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error removing user from project: " + e.getMessage());
+        }
+    }
+
+
     @GetMapping
     public ResponseEntity<List<ProjectResource>> getAllProjects() {
         var getAllProjectsQuery = new GetAllProjectsQuery();
@@ -80,7 +114,7 @@ public class ProjectsController {
         return ResponseEntity.ok(projectResources);
     }
 
-    // Endpoint to get a project by its ID
+
     @GetMapping("/{projectId}")
     public ResponseEntity<ProjectResource> getProjectById(@PathVariable Long projectId) {
         var getProjectByIdQuery = new GetProjectByIdQuery(projectId);
@@ -92,42 +126,51 @@ public class ProjectsController {
         return ResponseEntity.ok(projectResource);
     }
 
+
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<ProjectResource>> getProjectsByUserId(@PathVariable Long userId) {
-        var getProjectsByUserIdQuery = new GetProjectsByUserIdQuery(userId);  // Creamos la consulta con el userId
+        var getProjectsByUserIdQuery = new GetProjectsByUserIdQuery(userId);
         var projects = this.projectQueryService.handle(getProjectsByUserIdQuery);
 
         if (projects.isEmpty()) {
-            return ResponseEntity.notFound().build();  // Si no se encuentran proyectos, devolvemos 404
+            return ResponseEntity.notFound().build();
         }
 
-        // Convertimos las entidades a ProjectResource para la respuesta
         var projectResources = projects.stream()
                 .map(ProjectResourceFromEntityAssembler::toResourceFromEntity)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(projectResources);  // Retorna los proyectos en formato Resource
+        return ResponseEntity.ok(projectResources);
     }
 
 
-    // Endpoint to update an existing project
     @PutMapping("/{projectId}")
-    public ResponseEntity<ProjectResource> updateProject(@PathVariable Long projectId, @RequestBody ProjectResource resource) {
+    public ResponseEntity<ProjectResource> updateProject(@PathVariable Long projectId, @RequestBody UpdateProjectResource resource) {
+
         var updateProjectCommand = UpdateProjectCommandFromResourceAssembler.toCommandFromResource(projectId, resource);
+
+
         var optionalProject = this.projectCommandService.handle(updateProjectCommand);
+
 
         if (optionalProject.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
+
+
         var projectResource = ProjectResourceFromEntityAssembler.toResourceFromEntity(optionalProject.get());
+
+
         return ResponseEntity.ok(projectResource);
     }
 
-    // Endpoint to delete a project
+
+
     @DeleteMapping("/{projectId}")
     public ResponseEntity<?> deleteProject(@PathVariable Long projectId) {
         var deleteProjectCommand = new DeleteProjectCommand(projectId);
         this.projectCommandService.handle(deleteProjectCommand);
         return ResponseEntity.noContent().build();
     }
+
 }

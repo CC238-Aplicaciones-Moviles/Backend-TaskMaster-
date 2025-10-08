@@ -1,22 +1,21 @@
 package pe.edu.upc.managewise.backend.project.application.internal.commandservices;
 
 import org.springframework.stereotype.Service;
+import pe.edu.upc.managewise.backend.iam.infrastructure.persistence.jpa.repositories.UserRepository;
 import pe.edu.upc.managewise.backend.project.domain.model.aggregates.Project;
-import pe.edu.upc.managewise.backend.project.domain.model.commands.CreateProjectCommand;
-import pe.edu.upc.managewise.backend.project.domain.model.commands.DeleteProjectCommand;
-import pe.edu.upc.managewise.backend.project.domain.model.commands.UpdateProjectCommand;
+import pe.edu.upc.managewise.backend.project.domain.model.commands.*;
 import pe.edu.upc.managewise.backend.project.domain.services.ProjectCommandService;
 import pe.edu.upc.managewise.backend.project.infrastructure.persistence.jpa.repositories.ProjectRepository;
-
 import java.util.Optional;
-
 @Service
 public class ProjectCommandServiceImpl implements ProjectCommandService {
 
     private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
-    public ProjectCommandServiceImpl(ProjectRepository projectRepository) {
+    public ProjectCommandServiceImpl(ProjectRepository projectRepository, UserRepository userRepository) {
         this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -25,7 +24,9 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
         if (this.projectRepository.existsByName(name)) {
             throw new IllegalArgumentException("Project with name " + name + " already exists");
         }
+
         var project = new Project(command);
+
         try {
             this.projectRepository.save(project);
         } catch (Exception e) {
@@ -41,17 +42,12 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
         if (this.projectRepository.existsByNameAndIdIsNot(name, projectId)) {
             throw new IllegalArgumentException("Project with name " + name + " already exists");
         }
-
-        if (!this.projectRepository.existsById(projectId)) {
-            throw new IllegalArgumentException("Project with id " + projectId + " does not exist");
-        }
-
-        var projectToUpdate = this.projectRepository.findById(projectId).get();
+        var projectToUpdate = this.projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
         projectToUpdate.updateInformation(command);
 
         try {
-            var updatedProject = this.projectRepository.save(projectToUpdate);
-            return Optional.of(updatedProject);
+            return Optional.of(this.projectRepository.save(projectToUpdate));
         } catch (Exception e) {
             throw new IllegalArgumentException("Error while updating project: " + e.getMessage());
         }
@@ -60,13 +56,55 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
     @Override
     public void handle(DeleteProjectCommand command) {
         if (!this.projectRepository.existsById(command.projectId())) {
-            throw new IllegalArgumentException("Project with id " + command.projectId() + " does not exist");
+            throw new IllegalArgumentException("Project not found");
         }
-
         try {
             this.projectRepository.deleteById(command.projectId());
         } catch (Exception e) {
             throw new IllegalArgumentException("Error while deleting project: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void handleAddUserToProject(AddUserToProjectCommand command) {
+        boolean userExists = userRepository.existsById(command.userId());
+        if (!userExists) {
+            throw new IllegalArgumentException("User with ID " + command.userId() + " does not exist");
+        }
+        var project = projectRepository.findById(command.projectId())
+                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+        if (!project.getUserIds().contains(command.userId())) {
+            project.getUserIds().add(command.userId());
+            try {
+                projectRepository.save(project);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Error while adding user to project: " + e.getMessage());
+            }
+        } else {
+            throw new IllegalArgumentException("User is already part of the project");
+        }
+    }
+
+    @Override
+    public void handleRemoveUserFromProject(RemoveUserFromProjectCommand command) {
+        boolean userExists = userRepository.existsById(command.userId());
+        if (!userExists) {
+            throw new IllegalArgumentException("User with ID " + command.userId() + " does not exist");
+        }
+
+        var project = projectRepository.findById(command.projectId())
+                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+        if (project.getUserIds().contains(command.userId())) {
+            project.getUserIds().remove(command.userId());
+            try {
+                projectRepository.save(project);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Error while removing user from project: " + e.getMessage());
+            }
+        } else {
+            throw new IllegalArgumentException("User is not part of the project");
         }
     }
 }

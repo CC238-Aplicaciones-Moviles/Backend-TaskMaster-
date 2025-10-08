@@ -40,31 +40,32 @@ public class SprintsController {
     }
 
     @PostMapping("/project/{projectId}")
-    public ResponseEntity<SprintResource> createSprint(@PathVariable Long projectId, @RequestBody CreateSprintResource resource) {
-        // Obtener el Proyecto por projectId
+    public ResponseEntity<Object> createSprint(@PathVariable Long projectId, @RequestBody CreateSprintResource resource) {
         var project = this.projectQueryService.handle(new GetProjectByIdQuery(projectId));
-
         if (project.isEmpty()) {
-            return ResponseEntity.badRequest().build();  // Si el proyecto no existe, retorna un error
+            return ResponseEntity.badRequest().body("El proyecto con ID " + projectId + " no existe.");
         }
-
-        // Crear el comando de Sprint, pasando el Proyecto
         var createSprintCommand = CreateSprintCommandFromResourceAssembler.toCommandFromResource(project.get(), resource);
-        var sprintId = this.sprintCommandService.handle(createSprintCommand);
+        try {
+            var sprintId = this.sprintCommandService.handle(createSprintCommand);
 
-        if (sprintId.equals(0L)) {
-            return ResponseEntity.badRequest().build();
+            if (sprintId.equals(0L)) {
+                return ResponseEntity.badRequest().body("Error al crear el Sprint. Inténtalo de nuevo.");
+            }
+            var getSprintByIdQuery = new GetSprintByIdQuery(sprintId);
+            var optionalSprint = this.sprintQueryService.handle(getSprintByIdQuery);
+
+            if (optionalSprint.isEmpty()) {
+                return ResponseEntity.badRequest().body("El Sprint con ID " + sprintId + " no se pudo encontrar después de la creación.");
+            }
+            var sprintResource = SprintResourceFromEntityAssembler.toResourceFromEntity(optionalSprint.get());
+            return new ResponseEntity<>(sprintResource, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error inesperado: " + e.getMessage());
         }
-
-        var getSprintByIdQuery = new GetSprintByIdQuery(sprintId);
-        var optionalSprint = this.sprintQueryService.handle(getSprintByIdQuery);
-
-        if (optionalSprint.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        var sprintResource = SprintResourceFromEntityAssembler.toResourceFromEntity(optionalSprint.get());
-        return new ResponseEntity<>(sprintResource, HttpStatus.CREATED);
     }
 
 
@@ -111,7 +112,6 @@ public class SprintsController {
     //get sprint by userId
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<SprintResource>> getSprintsByUserId(@PathVariable Long userId) {
-        // Usamos el método del servicio para obtener los sprints por userId
         var sprints = this.sprintQueryService.handle(new GetSprintsByUserIdQuery(userId));
         var sprintResources = sprints.stream()
                 .map(SprintResourceFromEntityAssembler::toResourceFromEntity)
@@ -122,17 +122,16 @@ public class SprintsController {
 
     @GetMapping("/project/{projectId}")
     public ResponseEntity<List<SprintResource>> getSprintsByProjectId(@PathVariable Long projectId) {
-        // Verifica si el proyecto existe
+
         var project = this.projectQueryService.handle(new GetProjectByIdQuery(projectId));
         if (project.isEmpty()) {
-            return ResponseEntity.badRequest().build();  // Si no existe el proyecto, retorna un error
+            return ResponseEntity.badRequest().build();
         }
 
-        // Obtiene los sprints asociados al proyecto
+
         var getSprintsByProjectIdQuery = new GetSprintsByProjectIdQuery(projectId);
         var sprints = this.sprintQueryService.handle(getSprintsByProjectIdQuery);
 
-        // Si no hay sprints asociados, retorna un 404
         if (sprints.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -141,10 +140,7 @@ public class SprintsController {
                 .map(SprintResourceFromEntityAssembler::toResourceFromEntity)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(sprintResources);  // Retorna los sprints en formato Resource
+        return ResponseEntity.ok(sprintResources);
     }
-
-
-
-
 }
+

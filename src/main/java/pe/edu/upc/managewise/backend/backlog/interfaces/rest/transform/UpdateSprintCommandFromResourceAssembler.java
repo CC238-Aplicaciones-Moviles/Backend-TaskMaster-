@@ -6,6 +6,6 @@ import pe.edu.upc.managewise.backend.backlog.interfaces.rest.resources.UpdateSpr
 
 public class UpdateSprintCommandFromResourceAssembler {
     public static UpdateSprintCommand toCommandFromResource(Long id, UpdateSprintResource resource){
-        return new UpdateSprintCommand(id, resource.title(), resource.goal(), resource.status());
+        return new UpdateSprintCommand(id, resource.title(), resource.description(), resource.status());
     }
 }

@@ -39,13 +39,13 @@ public class SprintQueryServiceImpl implements SprintQueryService {
 
     @Override
     public List<Sprint> handle(GetSprintsByUserIdQuery query) {
-        // Usamos el método que busca los sprints por el userId del Proyecto
-        return this.sprintRepository.findByProjectUserId(query.userId());  // Llamamos al método que busca por userId del Proyecto
+
+        return this.sprintRepository.findByProjectUserId(query.userId());
     }
 
 
     @Override
     public List<Sprint> handle(GetSprintsByProjectIdQuery query) {
-        return sprintRepository.findByProjectId(query.projectId());  // Método para obtener los sprints por projectId
+        return sprintRepository.findByProjectId(query.projectId());
     }
 }

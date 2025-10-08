@@ -7,12 +7,15 @@ public class ProjectResourceFromEntityAssembler {
     public static ProjectResource toResourceFromEntity(Project entity) {
         return new ProjectResource(
                 entity.getId(),
+                entity.getProjectCode().toString(),
                 entity.getName(),
                 entity.getDescription(),
                 entity.getUserId(),
-                entity.getStatus().toString(), // Convertimos el enum a String
+                entity.getUserIds(),
+                entity.getStatus().toString(),
                 entity.getStartDate().toString(),
-                entity.getEndDate().toString()
+                entity.getEndDate().toString(),
+                entity.getBudget()
         );
     }
 }

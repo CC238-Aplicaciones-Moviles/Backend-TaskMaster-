@@ -38,7 +38,7 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
 
     @Override
     public List<Project> handle(GetProjectsByUserIdQuery query) {
-        return this.projectRepository.findByUserId(query.userId());  // Usamos el método creado en el repositorio
+        return this.projectRepository.findByUserId(query.userId());
     }
 
 }

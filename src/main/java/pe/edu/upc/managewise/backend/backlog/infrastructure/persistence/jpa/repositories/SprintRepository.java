@@ -9,11 +9,10 @@ import java.util.Optional;
 
 @Repository
 public interface SprintRepository extends JpaRepository<Sprint, Long> {
-    //para validaciones
+
     boolean existsByTitle(String title);
     boolean existsByTitleAndIdIsNot(String title, Long id);
     Optional<Sprint> findByTitle(String title);
-
     //List<Sprint> findByUserId(Long userId);
     List<Sprint> findByProjectUserId(Long userId);
     List<Sprint> findByProjectId(Long projectId);

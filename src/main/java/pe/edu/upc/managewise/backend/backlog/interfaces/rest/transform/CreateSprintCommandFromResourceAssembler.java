@@ -14,10 +14,16 @@ public class CreateSprintCommandFromResourceAssembler {
 }*/
 
 public class CreateSprintCommandFromResourceAssembler {
-
-    // Método actualizado para recibir el Project en lugar de userId
     public static CreateSprintCommand toCommandFromResource(Project project, CreateSprintResource resource){
-        return new CreateSprintCommand(project, resource.title(), resource.goal(), resource.endDate());
+        return new CreateSprintCommand(
+                project,
+                resource.title(),
+                resource.description(),
+                resource.endDate(),
+                resource.userIds(),
+                resource.priority()
+        );
     }
 }
+
 

@@ -10,12 +10,11 @@ import java.util.Optional;
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, Long> {
 
-    boolean existsByName(String name);  // Verifica si ya existe un proyecto con el mismo nombre
-    boolean existsByNameAndIdIsNot(String name, Long id);  // Verifica si ya existe un proyecto con el mismo nombre, pero diferente ID
+    boolean existsByName(String name);
+    boolean existsByNameAndIdIsNot(String name, Long id);
+    Optional<Project> findByName(String name);
+    Optional<Project> findById(Long id);
+    List<Project> findByUserId(Long userId);
+    Optional<Project> findByProjectCode(String projectCode);
 
-    Optional<Project> findByName(String name);  // Busca un proyecto por nombre
-
-    Optional<Project> findById(Long id);  // Busca un proyecto por ID (Este es un método de JpaRepository, pero se incluye aquí por claridad)
-
-    List<Project> findByUserId(Long userId);  // Devuelve todos los proyectos asociados con el userId
 }

@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProjectQueryService {
-    List<Project> handle(GetAllProjectsQuery query);  // Devuelve todos los proyectos
-    Optional<Project> handle(GetProjectByIdQuery query);  // Devuelve un proyecto por ID
-    Optional<Project> handle(GetProjectByNameQuery query);  // Devuelve un proyecto por nombre
+    List<Project> handle(GetAllProjectsQuery query);
+    Optional<Project> handle(GetProjectByIdQuery query);
+    Optional<Project> handle(GetProjectByNameQuery query);
     List<Project> handle(GetProjectsByUserIdQuery query);
 }
