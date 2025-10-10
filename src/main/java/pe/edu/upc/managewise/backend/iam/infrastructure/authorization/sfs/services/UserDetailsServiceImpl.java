@@ -14,23 +14,22 @@ import pe.edu.upc.managewise.backend.iam.infrastructure.persistence.jpa.reposito
 @Service(value = "defaultUserDetailsService")
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-  private final UserRepository userRepository;
+    private final UserRepository userRepository;
 
-  public UserDetailsServiceImpl(UserRepository userRepository) {
-    this.userRepository = userRepository;
-  }
+    public UserDetailsServiceImpl(UserRepository userRepository) {
+      this.userRepository = userRepository;
+    }
 
-  /**
-   * This method is responsible for loading the user details from the database.
-   * @param username The username.
-   * @return The UserDetails object.
-   * @throws UsernameNotFoundException If the user is not found.
-   */
-  @Override
-  public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    var user = userRepository.findByUsername(username)
-        .orElseThrow(
-            () -> new UsernameNotFoundException("User not found with username: " + username));
-    return UserDetailsImpl.build(user);
-  }
+    /**
+    * This method is responsible for loading the user details from the database.
+    * @param username The username.
+    * @return The UserDetails object.
+    * @throws UsernameNotFoundException If the user is not found.
+    */
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        var user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+        return UserDetailsImpl.build(user);
+    }
 }

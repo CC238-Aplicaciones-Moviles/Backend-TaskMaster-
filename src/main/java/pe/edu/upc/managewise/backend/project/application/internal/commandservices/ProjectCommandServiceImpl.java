@@ -1,11 +1,15 @@
 package pe.edu.upc.managewise.backend.project.application.internal.commandservices;
 
 import org.springframework.stereotype.Service;
+import pe.edu.upc.managewise.backend.iam.domain.model.valueobjects.Roles;
 import pe.edu.upc.managewise.backend.iam.infrastructure.persistence.jpa.repositories.UserRepository;
 import pe.edu.upc.managewise.backend.project.domain.model.aggregates.Project;
 import pe.edu.upc.managewise.backend.project.domain.model.commands.*;
+import pe.edu.upc.managewise.backend.project.domain.model.valueobjects.ProjectCode;
 import pe.edu.upc.managewise.backend.project.domain.services.ProjectCommandService;
 import pe.edu.upc.managewise.backend.project.infrastructure.persistence.jpa.repositories.ProjectRepository;
+
+import java.util.Date;
 import java.util.Optional;
 @Service
 public class ProjectCommandServiceImpl implements ProjectCommandService {
@@ -19,92 +23,180 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
     }
 
     @Override
-    public Long handle(CreateProjectCommand command) {
-        var name = command.name();
-        if (this.projectRepository.existsByName(name)) {
-            throw new IllegalArgumentException("Project with name " + name + " already exists");
+    public Long handle(CreateProjectCommand createProjectCommand) {
+        var leaderOptional = userRepository.findById(createProjectCommand.leaderId());
+        if (leaderOptional.isEmpty()) {
+            throw new IllegalArgumentException("Leader with ID " + createProjectCommand.leaderId() + " not found");
         }
 
-        var project = new Project(command);
+        var leader = leaderOptional.get();
 
-        try {
-            this.projectRepository.save(project);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Error while saving project: " + e.getMessage());
+        boolean isleader = leader.getRoles().stream()
+                .anyMatch(role -> role.getName() == Roles.ROLE_LEADER);
+
+        if (!isleader) {
+            throw new IllegalArgumentException("Only leaders can create projects");
         }
+
+        var project=new Project(createProjectCommand);
+        projectRepository.save(project);
+
         return project.getId();
     }
 
     @Override
-    public Optional<Project> handle(UpdateProjectCommand command) {
-        var projectId = command.projectId();
-        var name = command.name();
-        if (this.projectRepository.existsByNameAndIdIsNot(name, projectId)) {
-            throw new IllegalArgumentException("Project with name " + name + " already exists");
-        }
-        var projectToUpdate = this.projectRepository.findById(projectId)
-                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-        projectToUpdate.updateInformation(command);
+    public Optional<Project> handle(UpdateProjectCommand updateProjectCommand) {
+        var optionalProject=projectRepository.findById(updateProjectCommand.projectId());
 
-        try {
-            return Optional.of(this.projectRepository.save(projectToUpdate));
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Error while updating project: " + e.getMessage());
+        if (optionalProject.isEmpty()) {
+            throw new IllegalArgumentException("Project with ID " + updateProjectCommand.projectId() + " not found");
+        }
+
+        var project=optionalProject.get();
+
+        var updatedProject=project.updateProject(updateProjectCommand);
+
+        projectRepository.save(updatedProject);
+
+        return  Optional.of(updatedProject);
+    }
+
+    @Override
+    public void handle(DeleteProjectCommand deleteProjectCommand) {
+        if (!projectRepository.existsById(deleteProjectCommand.projectId())) {
+            throw new IllegalArgumentException("Project with ID " + deleteProjectCommand.projectId() + " not found");
+        }
+        try{
+            var allUsers = userRepository.findAll();
+
+            allUsers.forEach(user -> {
+                user.removeFromProject(deleteProjectCommand.projectId());
+                userRepository.save(user);
+            });
+
+            projectRepository.deleteById(deleteProjectCommand.projectId());
+
+        } catch (Exception e){
+            throw new RuntimeException("Error while deleting project",e);
         }
     }
 
     @Override
-    public void handle(DeleteProjectCommand command) {
-        if (!this.projectRepository.existsById(command.projectId())) {
-            throw new IllegalArgumentException("Project not found");
+    public Optional<Project> handle(AddUserToProjectCommand addUserToProjectCommand) {
+        var projectOptional = projectRepository.findAll().stream()
+                .filter(project -> project.getProjectCode() != null
+                        && project.getProjectCode().key().equals(addUserToProjectCommand.code()))
+                .findFirst();
+
+        if (projectOptional.isEmpty()) {
+            throw new IllegalArgumentException("Project with code " + addUserToProjectCommand.code() + " not found");
         }
-        try {
-            this.projectRepository.deleteById(command.projectId());
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Error while deleting project: " + e.getMessage());
+
+        var project = projectOptional.get();
+        if (project.getProjectCode().expiration().before(new Date())) {
+            throw new IllegalArgumentException("Code " + addUserToProjectCommand.code() + " has expired");
         }
+
+        var userOptional = userRepository.findById(addUserToProjectCommand.memberId());
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User with ID " + addUserToProjectCommand.memberId() + " not found");
+        }
+
+        var user = userOptional.get();
+
+        boolean alreadyInProject = user.getMemberInProjects().stream()
+                .anyMatch(p -> p.getId().equals(project.getId()));
+
+        if (!alreadyInProject) {
+            user.assignToProject(project);
+            userRepository.save(user);
+        }
+
+        return Optional.of(project);
     }
 
     @Override
-    public void handleAddUserToProject(AddUserToProjectCommand command) {
-        boolean userExists = userRepository.existsById(command.userId());
-        if (!userExists) {
-            throw new IllegalArgumentException("User with ID " + command.userId() + " does not exist");
-        }
-        var project = projectRepository.findById(command.projectId())
-                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+    public void handle(RemoveUserFromProjectCommand removeUserFromProjectCommand, Long leaderId) {
 
-        if (!project.getUserIds().contains(command.userId())) {
-            project.getUserIds().add(command.userId());
-            try {
-                projectRepository.save(project);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Error while adding user to project: " + e.getMessage());
-            }
-        } else {
-            throw new IllegalArgumentException("User is already part of the project");
+        var optionalProject=projectRepository.findById(removeUserFromProjectCommand.projectId());
+
+        if (optionalProject.isEmpty()) {
+            throw new IllegalArgumentException("Project with ID " + removeUserFromProjectCommand.projectId() + " not found");
         }
+
+        var project=optionalProject.get();
+
+        var optionalUser=userRepository.findById(removeUserFromProjectCommand.memberId());
+
+        if (optionalUser.isEmpty()) {
+            throw new IllegalArgumentException("Project with ID " + removeUserFromProjectCommand.memberId() + " not found");
+        }
+
+        var member=optionalUser.get();
+
+        var optionalLeader=userRepository.findById(leaderId);
+
+        if (optionalLeader.isEmpty()) {
+            throw new IllegalArgumentException("Leader with ID " + leaderId + " not found");
+        }
+
+        var leader=optionalLeader.get();
+
+        boolean isOwner= project.getLeaderId().equals(leaderId);
+
+        if (!isOwner) {
+            throw new IllegalArgumentException("Leader with ID " + leaderId + " is not the owner of this project");
+        }
+
+        boolean isAssigned = member.getMemberInProjects().stream().anyMatch(p->p.getId().equals(project.getId()));
+
+        if (!isAssigned) {
+            throw new IllegalArgumentException("Member with ID " + member.getId() + " is not assigned in this project");
+        }
+
+        member.removeFromProject(removeUserFromProjectCommand.projectId());
+
+        userRepository.save(member);
     }
 
     @Override
-    public void handleRemoveUserFromProject(RemoveUserFromProjectCommand command) {
-        boolean userExists = userRepository.existsById(command.userId());
-        if (!userExists) {
-            throw new IllegalArgumentException("User with ID " + command.userId() + " does not exist");
+    public Optional<Project> handle(ResetCodeCommand resetCodeCommand) {
+        var optionalProject=projectRepository.findById(resetCodeCommand.projectId());
+
+        if (optionalProject.isEmpty()) {
+            throw new IllegalArgumentException("Project with ID " + resetCodeCommand.projectId() + " not found");
         }
 
-        var project = projectRepository.findById(command.projectId())
-                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+        var project=optionalProject.get();
 
-        if (project.getUserIds().contains(command.userId())) {
-            project.getUserIds().remove(command.userId());
-            try {
-                projectRepository.save(project);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Error while removing user from project: " + e.getMessage());
-            }
-        } else {
-            throw new IllegalArgumentException("User is not part of the project");
+        project.resetCode();
+
+        projectRepository.save(project);
+
+        return  Optional.of(project);
+    }
+
+    @Override
+    public Optional<ProjectCode> handle(SetCodeCommand setCodeCommand) {
+        var optionalProject=projectRepository.findById(setCodeCommand.projectId());
+
+        if (optionalProject.isEmpty()) {
+            throw new IllegalArgumentException("Project with ID " + setCodeCommand.projectId() + " not found");
         }
+
+        var project=optionalProject.get();
+
+        var isAssigned = projectRepository.findAll().stream().anyMatch(p->p.getProjectCode().key().equals(setCodeCommand.keycode()));
+
+        if (isAssigned) {
+            throw new IllegalArgumentException("Project with ID " + setCodeCommand.projectId() + " is already assigned to any project");
+        }
+
+        var updatedProjectCode=new ProjectCode(setCodeCommand.keycode(),setCodeCommand.expiration());
+        var updatedProject=project.setCode(updatedProjectCode);
+
+        projectRepository.save(updatedProject);
+
+        return Optional.of(updatedProjectCode);
     }
 }

@@ -7,14 +7,15 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class CreateProjectCommandFromResourceAssembler {
-    public static CreateProjectCommand toCommandFromResource(CreateProjectResource resource) {
+    public static CreateProjectCommand toCommandFromResource(CreateProjectResource resource, Long leaderId) {
         Date endDate = convertStringToDate(resource.endDate());
         return new CreateProjectCommand(
-                null,
+                leaderId,
                 resource.name(),
                 resource.description(),
-                endDate,
-                resource.budget()
+                resource.imageUrl(),
+                resource.budget(),
+                endDate
         );
     }
 

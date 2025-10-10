@@ -7,17 +7,21 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class UpdateProjectCommandFromResourceAssembler {
-    public static UpdateProjectCommand toCommandFromResource(Long projectId, UpdateProjectResource resource) {
+    public static UpdateProjectCommand toCommandFromResource(UpdateProjectResource resource, Long projectId) {
 
         ProjectStatus status = ProjectStatus.valueOf(resource.status().toUpperCase());
-
-
         Date endDate = convertStringToDate(resource.endDate());
-
-
         Double budget = resource.budget() != null ? resource.budget() : null;
 
-        return new UpdateProjectCommand(projectId, resource.name(), resource.description(), endDate, status, budget);
+        return new UpdateProjectCommand(
+                projectId,
+                resource.name(),
+                resource.description(),
+                resource.imageUrl(),
+                budget,
+                status,
+                endDate
+        );
     }
 
 

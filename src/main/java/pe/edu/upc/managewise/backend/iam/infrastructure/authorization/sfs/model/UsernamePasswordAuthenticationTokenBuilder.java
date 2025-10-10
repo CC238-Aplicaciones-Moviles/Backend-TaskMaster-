@@ -19,13 +19,9 @@ public class UsernamePasswordAuthenticationTokenBuilder {
    * @see UsernamePasswordAuthenticationToken
    * @see UserDetails
    */
-  public static UsernamePasswordAuthenticationToken build(UserDetails principal,
-      HttpServletRequest request) {
-
-    var usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(principal,
-        null, principal.getAuthorities());
-    usernamePasswordAuthenticationToken.setDetails(
-        new WebAuthenticationDetailsSource().buildDetails(request));
-    return usernamePasswordAuthenticationToken;
+  public static UsernamePasswordAuthenticationToken build(UserDetails principal, HttpServletRequest request) {
+      var usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+      usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+      return usernamePasswordAuthenticationToken;
   }
 }

@@ -37,8 +37,25 @@ public class WebSecurityConfiguration {
   private final UserDetailsService userDetailsService;
   private final BearerTokenService tokenService;
   private final BCryptHashingService hashingService;
-
   private final AuthenticationEntryPoint unauthorizedRequestHandler;
+
+  /**
+     * This is the constructor of the class.
+     * @param userDetailsService The user details service
+     * @param tokenService The token service
+     * @param hashingService The hashing service
+     * @param authenticationEntryPoint The authentication entry point
+     */
+  public WebSecurityConfiguration(
+          @Qualifier("defaultUserDetailsService") UserDetailsService userDetailsService,
+          BearerTokenService tokenService,
+          BCryptHashingService hashingService,
+          AuthenticationEntryPoint authenticationEntryPoint) {
+      this.userDetailsService = userDetailsService;
+      this.tokenService = tokenService;
+      this.hashingService = hashingService;
+      this.unauthorizedRequestHandler = authenticationEntryPoint;
+  }
 
   /**
    * This method creates the Bearer Authorization Request Filter.
@@ -55,8 +72,7 @@ public class WebSecurityConfiguration {
    * @return The authentication manager
    */
   @Bean
-  public AuthenticationManager authenticationManager(
-      AuthenticationConfiguration authenticationConfiguration) throws Exception {
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
     return authenticationConfiguration.getAuthenticationManager();
   }
 
@@ -101,32 +117,20 @@ public class WebSecurityConfiguration {
         .exceptionHandling(exceptionHandling -> exceptionHandling.authenticationEntryPoint(unauthorizedRequestHandler))
         .sessionManagement(customizer -> customizer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
-            authorizeRequests -> authorizeRequests.requestMatchers(
-                "/api/v1/authentication/**", "/v3/api-docs/**", "/swagger-ui.html",
-                "/swagger-ui/**", "/swagger-resources/**", "/webjars/**", "/actuator/**")
+            authorizeRequests -> authorizeRequests
+                    .requestMatchers(
+                            "/api/v1/authentication/**",
+                            "/v3/api-docs/**",
+                            "/swagger-ui.html",
+                            "/swagger-ui/**",
+                            "/swagger-resources/**",
+                            "/webjars/**",
+                            "/actuator/**")
                 .permitAll()
                 .anyRequest()
                 .authenticated());
     http.authenticationProvider(authenticationProvider());
     http.addFilterBefore(authorizationRequestFilter(), UsernamePasswordAuthenticationFilter.class);
     return http.build();
-  }
-
-  /**
-   * This is the constructor of the class.
-   * @param userDetailsService The user details service
-   * @param tokenService The token service
-   * @param hashingService The hashing service
-   * @param authenticationEntryPoint The authentication entry point
-   */
-  public WebSecurityConfiguration(
-      @Qualifier("defaultUserDetailsService") UserDetailsService userDetailsService,
-      BearerTokenService tokenService, BCryptHashingService hashingService,
-      AuthenticationEntryPoint authenticationEntryPoint) {
-
-    this.userDetailsService = userDetailsService;
-    this.tokenService = tokenService;
-    this.hashingService = hashingService;
-    this.unauthorizedRequestHandler = authenticationEntryPoint;
   }
 }
