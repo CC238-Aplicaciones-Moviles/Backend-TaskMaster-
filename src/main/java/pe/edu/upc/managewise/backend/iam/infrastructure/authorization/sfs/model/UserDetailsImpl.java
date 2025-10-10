@@ -19,24 +19,31 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode
 public class UserDetailsImpl implements UserDetails {
 
-  private final String username;
-  @JsonIgnore
-  private final String password;
-  private final boolean accountNonExpired;
-  private final boolean accountNonLocked;
-  private final boolean credentialsNonExpired;
-  private final boolean enabled;
-  private final Collection<? extends GrantedAuthority> authorities;
+    private final Long id;
+    private final String username;
+    @JsonIgnore
+    private final String password;
+    private final boolean accountNonExpired;
+    private final boolean accountNonLocked;
+    private final boolean credentialsNonExpired;
+    private final boolean enabled;
+    private final Collection<? extends GrantedAuthority> authorities;
 
-  public UserDetailsImpl(String username, String password,
-      Collection<? extends GrantedAuthority> authorities) {
-    this.username = username;
-    this.password = password;
-    this.authorities = authorities;
-    this.accountNonExpired = true;
-    this.accountNonLocked = true;
-    this.credentialsNonExpired = true;
-    this.enabled = true;
+    /**
+     * This constructor initializes the UserDetailsImpl object.
+     * @param username The username.
+     * @param password The password.
+     * @param authorities The authorities.
+     */
+    public UserDetailsImpl(Long id, String username, String password, Collection<? extends GrantedAuthority> authorities) {
+        this.id = id;
+        this.username = username;
+        this.password = password;
+        this.authorities = authorities;
+        this.accountNonExpired = true;
+        this.accountNonLocked = true;
+        this.credentialsNonExpired = true;
+        this.enabled = true;
   }
 
   /**
@@ -50,6 +57,10 @@ public class UserDetailsImpl implements UserDetails {
         .map(SimpleGrantedAuthority::new)
         .collect(Collectors.toList());
 
-    return new UserDetailsImpl(user.getUsername(), user.getPassword(), authorities);
+    return new UserDetailsImpl(
+            user.getId(),
+            user.getEmail(),
+            user.getPassword(),
+            authorities);
   }
 }

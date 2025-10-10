@@ -26,15 +26,13 @@ import java.io.IOException;
  */
 public class BearerAuthorizationRequestFilter extends OncePerRequestFilter {
 
-  private static final Logger LOGGER
-      = LoggerFactory.getLogger(BearerAuthorizationRequestFilter.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BearerAuthorizationRequestFilter.class);
   private final BearerTokenService tokenService;
 
   @Qualifier("defaultUserDetailsService")
   private final UserDetailsService userDetailsService;
 
-  public BearerAuthorizationRequestFilter(BearerTokenService tokenService,
-      UserDetailsService userDetailsService) {
+  public BearerAuthorizationRequestFilter(BearerTokenService tokenService, UserDetailsService userDetailsService) {
     this.tokenService = tokenService;
     this.userDetailsService = userDetailsService;
   }
@@ -46,10 +44,7 @@ public class BearerAuthorizationRequestFilter extends OncePerRequestFilter {
    * @param filterChain The filter chain object.
    */
   @Override
-  protected void doFilterInternal(@NonNull HttpServletRequest request,
-      @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
-      throws ServletException, IOException {
-
+  protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
     try {
       String token = tokenService.getBearerTokenFrom(request);
       LOGGER.info("Token: {}", token);
@@ -59,8 +54,7 @@ public class BearerAuthorizationRequestFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext()
             .setAuthentication(
                 UsernamePasswordAuthenticationTokenBuilder.build(userDetails, request));
-      }
-      else {
+      } else {
         LOGGER.info("Token is not valid");
       }
 

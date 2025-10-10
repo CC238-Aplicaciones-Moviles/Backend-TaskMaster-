@@ -7,8 +7,9 @@ public record UpdateProjectCommand(
         Long projectId,
         String name,
         String description,
-        Date endDate,
+        String imageUrl,
+        Double budget,
         ProjectStatus status,
-        Double budget
+        Date endDate
 ) {
 }

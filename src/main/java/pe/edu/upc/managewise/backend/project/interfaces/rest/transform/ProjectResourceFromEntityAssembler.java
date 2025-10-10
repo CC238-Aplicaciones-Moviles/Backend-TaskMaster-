@@ -7,15 +7,15 @@ public class ProjectResourceFromEntityAssembler {
     public static ProjectResource toResourceFromEntity(Project entity) {
         return new ProjectResource(
                 entity.getId(),
-                entity.getProjectCode().toString(),
+                entity.getProjectCode().key(),
+                entity.getLeaderId(),
                 entity.getName(),
                 entity.getDescription(),
-                entity.getUserId(),
-                entity.getUserIds(),
+                entity.getImageUrl(),
+                entity.getBudget(),
                 entity.getStatus().toString(),
                 entity.getStartDate().toString(),
-                entity.getEndDate().toString(),
-                entity.getBudget()
+                entity.getEndDate().toString()
         );
     }
 }

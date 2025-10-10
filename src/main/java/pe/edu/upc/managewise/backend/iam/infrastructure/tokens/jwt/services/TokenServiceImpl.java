@@ -29,7 +29,6 @@ public class TokenServiceImpl implements BearerTokenService {
 
   private static final String AUTHORIZATION_PARAMETER_NAME = "Authorization";
   private static final String BEARER_TOKEN_PREFIX = "Bearer ";
-
   private static final int TOKEN_BEGIN_INDEX = 7;
 
   @Value("${authorization.jwt.secret}")

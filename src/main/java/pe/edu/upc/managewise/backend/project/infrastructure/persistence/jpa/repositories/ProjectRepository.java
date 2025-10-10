@@ -10,11 +10,5 @@ import java.util.Optional;
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, Long> {
 
-    boolean existsByName(String name);
-    boolean existsByNameAndIdIsNot(String name, Long id);
-    Optional<Project> findByName(String name);
-    Optional<Project> findById(Long id);
-    List<Project> findByUserId(Long userId);
-    Optional<Project> findByProjectCode(String projectCode);
-
+    List<Project> findByLeaderId(Long leaderId);
 }
