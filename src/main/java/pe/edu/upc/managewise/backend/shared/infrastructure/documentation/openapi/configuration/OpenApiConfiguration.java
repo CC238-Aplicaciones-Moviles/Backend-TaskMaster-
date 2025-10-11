@@ -21,14 +21,10 @@ public class OpenApiConfiguration {
         var openApi = new OpenAPI();
         openApi
                 .info(new Info()
-                        .title("Managewise Backend API")
-                        .description("Managewise backend REST API documentation.")
-                        .version("v1.0.0")
-                        .license(new License().name("Apache 2.0")
-                                .url("https://springdoc.org")))
-                .externalDocs(new ExternalDocumentation()
-                        .description("Managewise Backend Documentation")
-                        .url("https://github.com/Horizon-ManageWise/managewise-backend/tree/develop"));
+                        .title("TaskMaster API")
+                        .description("API para TaskMaster - Plataforma de gestión de proyectos y tareas desarrollada en WorkHub.")
+                        .version("1.0.0")
+                );
 //*************************iam*************************
         // Add security scheme
         final String securitySchemeName = "bearerAuth";
