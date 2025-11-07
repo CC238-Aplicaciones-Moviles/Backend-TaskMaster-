@@ -8,6 +8,8 @@ import pe.edu.upc.managewise.backend.project.domain.model.commands.*;
 import pe.edu.upc.managewise.backend.project.domain.model.valueobjects.ProjectCode;
 import pe.edu.upc.managewise.backend.project.domain.services.ProjectCommandService;
 import pe.edu.upc.managewise.backend.project.infrastructure.persistence.jpa.repositories.ProjectRepository;
+import pe.edu.upc.managewise.backend.notification.domain.services.NotificationCommandService;
+import pe.edu.upc.managewise.backend.notification.domain.model.commands.CreateNotificationCommand;
 
 import java.util.Date;
 import java.util.Optional;
@@ -16,10 +18,13 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final NotificationCommandService notificationCommandService;
 
-    public ProjectCommandServiceImpl(ProjectRepository projectRepository, UserRepository userRepository) {
+    public ProjectCommandServiceImpl(ProjectRepository projectRepository, UserRepository userRepository,
+                                     NotificationCommandService notificationCommandService) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.notificationCommandService = notificationCommandService;
     }
 
     @Override
@@ -110,6 +115,17 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
         if (!alreadyInProject) {
             user.assignToProject(project);
             userRepository.save(user);
+
+
+            try {
+                Long leaderId = project.getLeaderId();
+                String title = "Nuevo miembro en el proyecto";
+                String message = String.format("El usuario %s %s se unió al proyecto %s", user.getName(), user.getLastName(), project.getName());
+                System.out.println("[Notification] Enviando notificación al líderId=" + leaderId + ", mensaje=" + message);
+                notificationCommandService.handle(new CreateNotificationCommand(leaderId, title, message));
+            } catch (Exception ignored) {
+
+            }
         }
 
         return Optional.of(project);
