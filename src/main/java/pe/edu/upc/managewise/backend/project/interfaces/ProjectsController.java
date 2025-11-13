@@ -201,8 +201,8 @@ public class ProjectsController {
         var getAllProjectsQuery = new GetAllProjectsQuery();
         var projects = projectQueryService.handle(getAllProjectsQuery);
 
-        if (projects.isEmpty()) {
-            return ResponseEntity.notFound().build();
+        if (projects == null || projects.isEmpty()) {
+            return ResponseEntity.ok(List.of());
         }
 
         var projectResponse = projects.stream().map(ProjectResourceFromEntityAssembler::toResourceFromEntity).toList();
