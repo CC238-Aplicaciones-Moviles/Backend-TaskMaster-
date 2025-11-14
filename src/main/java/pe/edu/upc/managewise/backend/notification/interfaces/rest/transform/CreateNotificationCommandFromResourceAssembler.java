@@ -4,9 +4,9 @@ import pe.edu.upc.managewise.backend.notification.domain.model.commands.CreateNo
 import pe.edu.upc.managewise.backend.notification.interfaces.rest.resources.CreateNotificationResource;
 
 public class CreateNotificationCommandFromResourceAssembler {
-    public static CreateNotificationCommand toCommandFromResource(CreateNotificationResource resource, Long userId) {
+    public static CreateNotificationCommand toCommandFromResource(CreateNotificationResource resource) {
         return new CreateNotificationCommand(
-                userId,
+                resource.userId(),
                 resource.title(),
                 resource.message()
         );

@@ -45,6 +45,21 @@ public class NotificationController {
         return ResponseEntity.ok(resources);
     }
 
+    @PostMapping
+    public ResponseEntity<NotificationResource> createNotification(@RequestBody CreateNotificationResource resource) {
+        var command = CreateNotificationCommandFromResourceAssembler.toCommandFromResource(resource);
+        
+        var notification = notificationCommandService.handle(command);
+        
+        if (notification.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        var notificationResource = NotificationResourceFromEntityAssembler.toResourceFromEntity(notification.get());
+        return ResponseEntity.created(URI.create("/api/v1/notifications/" + notification.get().getId()))
+                .body(notificationResource);
+    }
+
     private Long getAuthenticatedUserId() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         var principal = auth.getPrincipal();

@@ -5,6 +5,7 @@ import pe.edu.upc.managewise.backend.notification.domain.model.aggregates.Notifi
 import pe.edu.upc.managewise.backend.notification.domain.model.commands.CreateNotificationCommand;
 import pe.edu.upc.managewise.backend.notification.domain.services.NotificationCommandService;
 import pe.edu.upc.managewise.backend.notification.infrastructure.persistence.jpa.repositories.NotificationRepository;
+import pe.edu.upc.managewise.backend.notification.infrastructure.outboundservices.N8nWebhookService;
 import pe.edu.upc.managewise.backend.iam.infrastructure.persistence.jpa.repositories.UserRepository;
 
 import java.util.Date;
@@ -15,11 +16,14 @@ public class NotificationCommandServiceImpl implements NotificationCommandServic
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final N8nWebhookService n8nWebhookService;
 
     public NotificationCommandServiceImpl(NotificationRepository notificationRepository,
-                                          UserRepository userRepository) {
+                                          UserRepository userRepository,
+                                          N8nWebhookService n8nWebhookService) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
+        this.n8nWebhookService = n8nWebhookService;
     }
 
     @Override
@@ -38,6 +42,10 @@ public class NotificationCommandServiceImpl implements NotificationCommandServic
         var savedNotification = notificationRepository.save(notification);
 
         System.out.println("[Notification] Guardada notification id=" + savedNotification.getId() + ", userId=" + savedNotification.getUserId() + ", title=" + savedNotification.getTitle());
+        
+        // Enviar notificación al webhook de n8n
+        n8nWebhookService.sendNotificationToWebhook(savedNotification, user);
+        
         return Optional.of(savedNotification);
     }
 }
