@@ -1,6 +1,7 @@
 package pe.edu.upc.managewise.backend.notification.application.internal.commandservices;
 
 import org.springframework.stereotype.Service;
+import pe.edu.upc.managewise.backend.notification.application.internal.services.EmailService;
 import pe.edu.upc.managewise.backend.notification.domain.model.aggregates.Notification;
 import pe.edu.upc.managewise.backend.notification.domain.model.commands.CreateNotificationCommand;
 import pe.edu.upc.managewise.backend.notification.domain.services.NotificationCommandService;
@@ -15,11 +16,15 @@ public class NotificationCommandServiceImpl implements NotificationCommandServic
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     public NotificationCommandServiceImpl(NotificationRepository notificationRepository,
-                                          UserRepository userRepository) {
+                                          UserRepository userRepository,
+                                          EmailService emailService) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
+        this.emailService = emailService;
+
     }
 
     @Override
@@ -36,6 +41,19 @@ public class NotificationCommandServiceImpl implements NotificationCommandServic
         );
 
         var savedNotification = notificationRepository.save(notification);
+
+
+        try {
+            emailService.sendNotificationEmail(
+                    user.getEmail(),
+                    command.title(),
+                    command.message()
+            );
+        } catch (Exception e) {
+            System.out.println("[Email] Error enviando correo a "
+                    + user.getEmail() + ": " + e.getMessage());
+        }
+
 
         System.out.println("[Notification] Guardada notification id=" + savedNotification.getId() + ", userId=" + savedNotification.getUserId() + ", title=" + savedNotification.getTitle());
         return Optional.of(savedNotification);
